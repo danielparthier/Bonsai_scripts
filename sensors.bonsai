@@ -1,0 +1,879 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.9.1"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:port="clr-namespace:Bonsai.IO.Ports;assembly=Bonsai.System"
+                 xmlns:scr="clr-namespace:Bonsai.Scripting.Expressions;assembly=Bonsai.Scripting.Expressions"
+                 xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core"
+                 xmlns:io="clr-namespace:Bonsai.IO;assembly=Bonsai.System"
+                 xmlns:p1="clr-namespace:Bonsai.Mixer;assembly=Bonsai.Mixer"
+                 xmlns:zg="clr-namespace:Bonsai.Gui.ZedGraph;assembly=Bonsai.Gui.ZedGraph"
+                 xmlns:gui="clr-namespace:Bonsai.Gui;assembly=Bonsai.Gui"
+                 xmlns:imvizui="clr-namespace:Bonsai.ImGui.Visualizers;assembly=Bonsai.ImGui.Visualizers.Design"
+                 xmlns:imgui="clr-namespace:Bonsai.ImGui;assembly=Bonsai.ImGui"
+                 xmlns:implot="clr-namespace:Bonsai.ImPlot;assembly=Bonsai.ImPlot"
+                 xmlns:imviz="clr-namespace:Bonsai.ImGui.Visualizers;assembly=Bonsai.ImGui.Visualizers"
+                 xmlns:dsp="clr-namespace:Bonsai.Dsp;assembly=Bonsai.Dsp"
+                 xmlns="https://bonsai-rx.org/2018/workflow">
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="GroupWorkflow">
+        <Name>ReadSensors</Name>
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="PortName" />
+              <Property Name="BaudRate" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="port:CreateSerialPort">
+                <port:Name>COM3</port:Name>
+                <port:PortName>COM3</port:PortName>
+                <port:BaudRate>115200</port:BaudRate>
+                <port:Encoding>utf-8</port:Encoding>
+                <port:NewLine>\r\n</port:NewLine>
+                <port:Parity>None</port:Parity>
+                <port:ParityReplace>63</port:ParityReplace>
+                <port:DataBits>8</port:DataBits>
+                <port:StopBits>One</port:StopBits>
+                <port:Handshake>None</port:Handshake>
+                <port:DiscardNull>false</port:DiscardNull>
+                <port:DtrEnable>true</port:DtrEnable>
+                <port:RtsEnable>false</port:RtsEnable>
+                <port:ReadBufferSize>4096</port:ReadBufferSize>
+                <port:WriteBufferSize>2048</port:WriteBufferSize>
+                <port:ReceivedBytesThreshold>1</port:ReceivedBytesThreshold>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="NewLine" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="port:SerialReadLine">
+                <port:PortName>COM3</port:PortName>
+                <port:NewLine>\r\n</port:NewLine>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Parse">
+              <Pattern>Ch%i_%s:%f</Pattern>
+              <Separator>,</Separator>
+            </Expression>
+            <Expression xsi:type="scr:ExpressionTransform">
+              <scr:Name>SensorData</scr:Name>
+              <scr:Expression>new(it[0].Item1 as channel, it[0].Item3 as Temperature, it[1].Item3 as Humidity)</scr:Expression>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="rx:Timestamp" />
+            </Expression>
+            <Expression xsi:type="io:CsvWriter">
+              <io:FileName>test.csv</io:FileName>
+              <io:Append>true</io:Append>
+              <io:Overwrite>true</io:Overwrite>
+              <io:Suffix>None</io:Suffix>
+              <io:IncludeHeader>true</io:IncludeHeader>
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>channel</Selector>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="rx:Sample" />
+            </Expression>
+            <Expression xsi:type="scr:ExpressionCondition">
+              <scr:Name>Box1</scr:Name>
+              <scr:Expression>it.channel==1</scr:Expression>
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>Temperature</Selector>
+            </Expression>
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>box1_temp</Name>
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>Humidity</Selector>
+            </Expression>
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>box1_hum</Name>
+            </Expression>
+            <Expression xsi:type="scr:ExpressionCondition">
+              <scr:Name>Box2</scr:Name>
+              <scr:Expression>it.channel==2</scr:Expression>
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>Temperature</Selector>
+            </Expression>
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>box2_temp</Name>
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>Humidity</Selector>
+            </Expression>
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>box2_hum</Name>
+            </Expression>
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="2" To="3" Label="Source1" />
+            <Edge From="3" To="4" Label="Source1" />
+            <Edge From="4" To="5" Label="Source1" />
+            <Edge From="5" To="6" Label="Source1" />
+            <Edge From="5" To="8" Label="Source1" />
+            <Edge From="5" To="9" Label="Source1" />
+            <Edge From="6" To="7" Label="Source1" />
+            <Edge From="8" To="9" Label="Source2" />
+            <Edge From="9" To="10" Label="Source1" />
+            <Edge From="9" To="15" Label="Source1" />
+            <Edge From="10" To="11" Label="Source1" />
+            <Edge From="10" To="13" Label="Source1" />
+            <Edge From="11" To="12" Label="Source1" />
+            <Edge From="13" To="14" Label="Source1" />
+            <Edge From="15" To="16" Label="Source1" />
+            <Edge From="15" To="18" Label="Source1" />
+            <Edge From="16" To="17" Label="Source1" />
+            <Edge From="18" To="19" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="GroupWorkflow">
+        <Name>PlotSensorData</Name>
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>box1_hum</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>box2_hum</Name>
+            </Expression>
+            <Expression xsi:type="GroupWorkflow">
+              <Name>AlarmSound</Name>
+              <Workflow>
+                <Nodes>
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source1</Name>
+                  </Expression>
+                  <Expression xsi:type="GreaterThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>70</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="LessThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>30</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source2</Name>
+                  </Expression>
+                  <Expression xsi:type="GreaterThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>70</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="LessThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>30</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="Combinator">
+                    <Combinator xsi:type="rx:CombineLatest" />
+                  </Expression>
+                  <Expression xsi:type="scr:ExpressionTransform">
+                    <scr:Expression>it.Item1 || it.Item2 || it.Item3 || it.Item4</scr:Expression>
+                  </Expression>
+                  <Expression xsi:type="rx:Condition">
+                    <Workflow>
+                      <Nodes>
+                        <Expression xsi:type="WorkflowInput">
+                          <Name>Source1</Name>
+                        </Expression>
+                        <Expression xsi:type="WorkflowOutput" />
+                      </Nodes>
+                      <Edges>
+                        <Edge From="0" To="1" Label="Source1" />
+                      </Edges>
+                    </Workflow>
+                  </Expression>
+                  <Expression xsi:type="rx:SelectMany">
+                    <Name>SoundOutput</Name>
+                    <Workflow>
+                      <Nodes>
+                        <Expression xsi:type="SubscribeSubject">
+                          <Name>Source</Name>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="rx:Delay">
+                            <rx:DueTime>PT2S</rx:DueTime>
+                          </Combinator>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="p1:PlaySource" />
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="rx:Delay">
+                            <rx:DueTime>PT2S</rx:DueTime>
+                          </Combinator>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="p1:PauseSource" />
+                        </Expression>
+                        <Expression xsi:type="WorkflowOutput" />
+                      </Nodes>
+                      <Edges>
+                        <Edge From="0" To="1" Label="Source1" />
+                        <Edge From="1" To="2" Label="Source1" />
+                        <Edge From="2" To="3" Label="Source1" />
+                        <Edge From="3" To="4" Label="Source1" />
+                        <Edge From="4" To="5" Label="Source1" />
+                      </Edges>
+                    </Workflow>
+                  </Expression>
+                  <Expression xsi:type="WorkflowOutput" />
+                </Nodes>
+                <Edges>
+                  <Edge From="0" To="1" Label="Source1" />
+                  <Edge From="0" To="2" Label="Source1" />
+                  <Edge From="1" To="6" Label="Source1" />
+                  <Edge From="2" To="6" Label="Source2" />
+                  <Edge From="3" To="4" Label="Source1" />
+                  <Edge From="3" To="5" Label="Source1" />
+                  <Edge From="4" To="6" Label="Source3" />
+                  <Edge From="5" To="6" Label="Source4" />
+                  <Edge From="6" To="7" Label="Source1" />
+                  <Edge From="7" To="8" Label="Source1" />
+                  <Edge From="8" To="9" Label="Source1" />
+                  <Edge From="9" To="10" Label="Source1" />
+                </Edges>
+              </Workflow>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>box1_temp</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>box2_temp</Name>
+            </Expression>
+            <Expression xsi:type="GroupWorkflow">
+              <Name>AlarmSound</Name>
+              <Workflow>
+                <Nodes>
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source1</Name>
+                  </Expression>
+                  <Expression xsi:type="GreaterThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>27</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="LessThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>17</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source2</Name>
+                  </Expression>
+                  <Expression xsi:type="GreaterThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>27</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="LessThan">
+                    <Operand xsi:type="FloatProperty">
+                      <Value>17</Value>
+                    </Operand>
+                  </Expression>
+                  <Expression xsi:type="Combinator">
+                    <Combinator xsi:type="rx:CombineLatest" />
+                  </Expression>
+                  <Expression xsi:type="scr:ExpressionTransform">
+                    <scr:Expression>it.Item1 || it.Item2 || it.Item3 || it.Item4</scr:Expression>
+                  </Expression>
+                  <Expression xsi:type="rx:Condition">
+                    <Workflow>
+                      <Nodes>
+                        <Expression xsi:type="WorkflowInput">
+                          <Name>Source1</Name>
+                        </Expression>
+                        <Expression xsi:type="WorkflowOutput" />
+                      </Nodes>
+                      <Edges>
+                        <Edge From="0" To="1" Label="Source1" />
+                      </Edges>
+                    </Workflow>
+                  </Expression>
+                  <Expression xsi:type="rx:SelectMany">
+                    <Name>SoundOutput</Name>
+                    <Workflow>
+                      <Nodes>
+                        <Expression xsi:type="SubscribeSubject">
+                          <Name>Source</Name>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="rx:Delay">
+                            <rx:DueTime>PT2S</rx:DueTime>
+                          </Combinator>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="p1:PlaySource" />
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="rx:Delay">
+                            <rx:DueTime>PT2S</rx:DueTime>
+                          </Combinator>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="p1:PauseSource" />
+                        </Expression>
+                        <Expression xsi:type="WorkflowOutput" />
+                      </Nodes>
+                      <Edges>
+                        <Edge From="0" To="1" Label="Source1" />
+                        <Edge From="1" To="2" Label="Source1" />
+                        <Edge From="2" To="3" Label="Source1" />
+                        <Edge From="3" To="4" Label="Source1" />
+                        <Edge From="4" To="5" Label="Source1" />
+                      </Edges>
+                    </Workflow>
+                  </Expression>
+                  <Expression xsi:type="WorkflowOutput" />
+                </Nodes>
+                <Edges>
+                  <Edge From="0" To="1" Label="Source1" />
+                  <Edge From="0" To="2" Label="Source1" />
+                  <Edge From="1" To="6" Label="Source1" />
+                  <Edge From="2" To="6" Label="Source2" />
+                  <Edge From="3" To="4" Label="Source1" />
+                  <Edge From="3" To="5" Label="Source1" />
+                  <Edge From="4" To="6" Label="Source3" />
+                  <Edge From="5" To="6" Label="Source4" />
+                  <Edge From="6" To="7" Label="Source1" />
+                  <Edge From="7" To="8" Label="Source1" />
+                  <Edge From="8" To="9" Label="Source1" />
+                  <Edge From="9" To="10" Label="Source1" />
+                </Edges>
+              </Workflow>
+            </Expression>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="Value" DisplayName="DisplayLength" Description="Seconds to display" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="IntProperty">
+                <Value>300</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="GroupWorkflow">
+              <Name>GUI_test</Name>
+              <Workflow>
+                <Nodes>
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source2</Name>
+                  </Expression>
+                  <Expression xsi:type="zg:BarGraphBuilder">
+                    <zg:BaseAxis>X</zg:BaseAxis>
+                    <zg:BarType>Cluster</zg:BarType>
+                    <zg:CurveSettings>
+                      <zg:CurveConfiguration>
+                        <zg:Label>hum</zg:Label>
+                        <zg:Color>Red</zg:Color>
+                      </zg:CurveConfiguration>
+                    </zg:CurveSettings>
+                    <zg:Capacity>1</zg:Capacity>
+                    <zg:Min>0</zg:Min>
+                    <zg:Max>100</zg:Max>
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source3</Name>
+                  </Expression>
+                  <Expression xsi:type="zg:BarGraphBuilder">
+                    <zg:BaseAxis>X</zg:BaseAxis>
+                    <zg:BarType>Cluster</zg:BarType>
+                    <zg:CurveSettings>
+                      <zg:CurveConfiguration>
+                        <zg:Label>Humidity</zg:Label>
+                        <zg:Color>Red</zg:Color>
+                      </zg:CurveConfiguration>
+                    </zg:CurveSettings>
+                    <zg:Capacity>1</zg:Capacity>
+                    <zg:Min>0</zg:Min>
+                    <zg:Max>100</zg:Max>
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source4</Name>
+                  </Expression>
+                  <Expression xsi:type="zg:BarGraphBuilder">
+                    <zg:BaseAxis>X</zg:BaseAxis>
+                    <zg:BarType>Cluster</zg:BarType>
+                    <zg:CurveSettings />
+                    <zg:Capacity>1</zg:Capacity>
+                    <zg:Min>16</zg:Min>
+                    <zg:Max>30</zg:Max>
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source5</Name>
+                  </Expression>
+                  <Expression xsi:type="zg:BarGraphBuilder">
+                    <zg:BaseAxis>X</zg:BaseAxis>
+                    <zg:BarType>Cluster</zg:BarType>
+                    <zg:CurveSettings>
+                      <zg:CurveConfiguration>
+                        <zg:Label>Humidity</zg:Label>
+                        <zg:Color>Red</zg:Color>
+                      </zg:CurveConfiguration>
+                    </zg:CurveSettings>
+                    <zg:Capacity>1</zg:Capacity>
+                    <zg:Min>16</zg:Min>
+                    <zg:Max>30</zg:Max>
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="WorkflowInput">
+                    <Name>Source1</Name>
+                  </Expression>
+                  <Expression xsi:type="PropertyMapping">
+                    <PropertyMappings>
+                      <Property Name="Capacity" />
+                    </PropertyMappings>
+                  </Expression>
+                  <Expression xsi:type="zg:RollingGraphBuilder">
+                    <zg:SymbolType>Circle</zg:SymbolType>
+                    <zg:LineWidth>1</zg:LineWidth>
+                    <zg:CurveSettings>
+                      <zg:CurveConfiguration>
+                        <zg:Label>Box1</zg:Label>
+                        <zg:Color>Red</zg:Color>
+                      </zg:CurveConfiguration>
+                    </zg:CurveSettings>
+                    <zg:Capacity>300</zg:Capacity>
+                    <zg:Min xsi:nil="true" />
+                    <zg:Max xsi:nil="true" />
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="PropertyMapping">
+                    <PropertyMappings>
+                      <Property Name="Capacity" />
+                    </PropertyMappings>
+                  </Expression>
+                  <Expression xsi:type="zg:RollingGraphBuilder">
+                    <zg:SymbolType>Circle</zg:SymbolType>
+                    <zg:LineWidth>1</zg:LineWidth>
+                    <zg:CurveSettings>
+                      <zg:CurveConfiguration>
+                        <zg:Label>Box2</zg:Label>
+                        <zg:Color>Blue</zg:Color>
+                      </zg:CurveConfiguration>
+                    </zg:CurveSettings>
+                    <zg:Capacity>300</zg:Capacity>
+                    <zg:Min xsi:nil="true" />
+                    <zg:Max xsi:nil="true" />
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="zg:RollingGraphPanelBuilder">
+                    <zg:Name>Humidity</zg:Name>
+                    <zg:ReverseX>false</zg:ReverseX>
+                    <zg:ReverseY>false</zg:ReverseY>
+                    <zg:Span xsi:nil="true" />
+                    <zg:Capacity xsi:nil="true" />
+                    <zg:BaseAxis>X</zg:BaseAxis>
+                    <zg:BarType>Cluster</zg:BarType>
+                    <zg:Min xsi:nil="true" />
+                    <zg:Max xsi:nil="true" />
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="PropertyMapping">
+                    <PropertyMappings>
+                      <Property Name="Capacity" />
+                    </PropertyMappings>
+                  </Expression>
+                  <Expression xsi:type="zg:RollingGraphBuilder">
+                    <zg:SymbolType>Circle</zg:SymbolType>
+                    <zg:LineWidth>1</zg:LineWidth>
+                    <zg:CurveSettings>
+                      <zg:CurveConfiguration>
+                        <zg:Label>Box1</zg:Label>
+                        <zg:Color>Red</zg:Color>
+                      </zg:CurveConfiguration>
+                    </zg:CurveSettings>
+                    <zg:Capacity>300</zg:Capacity>
+                    <zg:Min xsi:nil="true" />
+                    <zg:Max xsi:nil="true" />
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="PropertyMapping">
+                    <PropertyMappings>
+                      <Property Name="Capacity" />
+                    </PropertyMappings>
+                  </Expression>
+                  <Expression xsi:type="zg:RollingGraphBuilder">
+                    <zg:SymbolType>Circle</zg:SymbolType>
+                    <zg:LineWidth>1</zg:LineWidth>
+                    <zg:CurveSettings>
+                      <zg:CurveConfiguration>
+                        <zg:Label>Box2</zg:Label>
+                        <zg:Color>Blue</zg:Color>
+                      </zg:CurveConfiguration>
+                    </zg:CurveSettings>
+                    <zg:Capacity>300</zg:Capacity>
+                    <zg:Min xsi:nil="true" />
+                    <zg:Max xsi:nil="true" />
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="zg:RollingGraphPanelBuilder">
+                    <zg:Name>Temperature</zg:Name>
+                    <zg:ReverseX>false</zg:ReverseX>
+                    <zg:ReverseY>false</zg:ReverseY>
+                    <zg:Span xsi:nil="true" />
+                    <zg:Capacity xsi:nil="true" />
+                    <zg:BaseAxis>X</zg:BaseAxis>
+                    <zg:BarType>Cluster</zg:BarType>
+                    <zg:Min xsi:nil="true" />
+                    <zg:Max xsi:nil="true" />
+                  </Expression>
+                  <Expression xsi:type="VisualizerMapping" />
+                  <Expression xsi:type="gui:TableLayoutPanelBuilder">
+                    <gui:Name>EnvironmentClimate</gui:Name>
+                    <gui:Enabled>true</gui:Enabled>
+                    <gui:Visible>true</gui:Visible>
+                    <gui:Font>Microsoft Sans Serif, 21.75pt, style=Bold</gui:Font>
+                    <gui:ColumnCount>2</gui:ColumnCount>
+                    <gui:RowCount>3</gui:RowCount>
+                    <gui:ColumnStyles />
+                    <gui:RowStyles />
+                    <gui:CellSpans />
+                  </Expression>
+                  <Expression xsi:type="zg:GraphPanelBuilder">
+                    <zg:Name>Humidity</zg:Name>
+                    <zg:ReverseX>false</zg:ReverseX>
+                    <zg:ReverseY>false</zg:ReverseY>
+                    <zg:Span xsi:nil="true" />
+                    <zg:Capacity>1</zg:Capacity>
+                    <zg:XMin xsi:nil="true" />
+                    <zg:XMax xsi:nil="true" />
+                    <zg:YMin xsi:nil="true" />
+                    <zg:YMax xsi:nil="true" />
+                  </Expression>
+                </Nodes>
+                <Edges>
+                  <Edge From="0" To="1" Label="Source1" />
+                  <Edge From="0" To="14" Label="Source1" />
+                  <Edge From="1" To="2" Label="Source1" />
+                  <Edge From="2" To="29" Label="Source1" />
+                  <Edge From="2" To="30" Label="Source1" />
+                  <Edge From="3" To="4" Label="Source1" />
+                  <Edge From="3" To="17" Label="Source1" />
+                  <Edge From="4" To="5" Label="Source1" />
+                  <Edge From="5" To="29" Label="Source2" />
+                  <Edge From="6" To="7" Label="Source1" />
+                  <Edge From="6" To="22" Label="Source1" />
+                  <Edge From="7" To="8" Label="Source1" />
+                  <Edge From="8" To="29" Label="Source3" />
+                  <Edge From="9" To="10" Label="Source1" />
+                  <Edge From="9" To="25" Label="Source1" />
+                  <Edge From="10" To="11" Label="Source1" />
+                  <Edge From="11" To="29" Label="Source4" />
+                  <Edge From="12" To="13" Label="Source1" />
+                  <Edge From="12" To="16" Label="Source1" />
+                  <Edge From="12" To="21" Label="Source1" />
+                  <Edge From="12" To="24" Label="Source1" />
+                  <Edge From="13" To="14" Label="Source2" />
+                  <Edge From="14" To="15" Label="Source1" />
+                  <Edge From="15" To="19" Label="Source1" />
+                  <Edge From="16" To="17" Label="Source2" />
+                  <Edge From="17" To="18" Label="Source1" />
+                  <Edge From="18" To="19" Label="Source2" />
+                  <Edge From="19" To="20" Label="Source1" />
+                  <Edge From="20" To="29" Label="Source5" />
+                  <Edge From="21" To="22" Label="Source2" />
+                  <Edge From="22" To="23" Label="Source1" />
+                  <Edge From="23" To="27" Label="Source1" />
+                  <Edge From="24" To="25" Label="Source2" />
+                  <Edge From="25" To="26" Label="Source1" />
+                  <Edge From="26" To="27" Label="Source2" />
+                  <Edge From="27" To="28" Label="Source1" />
+                  <Edge From="28" To="29" Label="Source6" />
+                </Edges>
+              </Workflow>
+            </Expression>
+            <Expression xsi:type="imvizui:ImPlotVisualizerBuilder" />
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>ImPlot</Name>
+            </Expression>
+            <Expression xsi:type="VisualizerMapping" />
+            <Expression xsi:type="imvizui:ImGuiVisualizerBuilder" />
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>Gui</Name>
+            </Expression>
+            <Expression xsi:type="imvizui:ImPlotVisualizerBuilder" />
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>ImPlot2</Name>
+            </Expression>
+            <Expression xsi:type="VisualizerMapping" />
+            <Expression xsi:type="imvizui:ImGuiVisualizerBuilder" />
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>Gui2</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Gui</Name>
+            </Expression>
+            <Expression xsi:type="imgui:ButtonBuilder">
+              <imgui:Visible>true</imgui:Visible>
+              <imgui:Text>Hello</imgui:Text>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Gui</Name>
+            </Expression>
+            <Expression xsi:type="imgui:RadioButtonBuilder">
+              <imgui:Visible>true</imgui:Visible>
+              <imgui:ButtonValue>0</imgui:ButtonValue>
+              <imgui:SelectedValue>0</imgui:SelectedValue>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>ImPlot</Name>
+            </Expression>
+            <Expression xsi:type="implot:PlotBuilder">
+              <implot:Visible>true</implot:Visible>
+              <implot:Size>
+                <implot:X>-1</implot:X>
+                <implot:Y>0</implot:Y>
+              </implot:Size>
+              <implot:Flags>None</implot:Flags>
+              <implot:FlagsX>AutoFit</implot:FlagsX>
+              <implot:FlagsY>AutoFit</implot:FlagsY>
+            </Expression>
+            <Expression xsi:type="rx:PublishSubject">
+              <Name>Plot</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Gui</Name>
+            </Expression>
+            <Expression xsi:type="imgui:SliderAngleBuilder">
+              <imgui:Name>sliderTest</imgui:Name>
+              <imgui:Visible>true</imgui:Visible>
+              <imgui:InitialValue>0</imgui:InitialValue>
+              <imgui:MinDegrees>-360</imgui:MinDegrees>
+              <imgui:MaxDegrees>360</imgui:MaxDegrees>
+              <imgui:Flags>None</imgui:Flags>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Gui</Name>
+            </Expression>
+            <Expression xsi:type="imgui:ArrowButtonBuilder">
+              <imgui:Visible>true</imgui:Visible>
+              <imgui:Direction>Right</imgui:Direction>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>box1_temp</Name>
+            </Expression>
+            <Expression xsi:type="imviz:RollingBufferBuilder">
+              <imviz:Capacity>1000</imviz:Capacity>
+              <imviz:ValueSelector />
+            </Expression>
+            <Expression xsi:type="imviz:LatestOnNewFrame">
+              <Name>Plot</Name>
+            </Expression>
+            <Expression xsi:type="imviz:PlotLineSeriesBuilder">
+              <imviz:Visible>true</imviz:Visible>
+              <imviz:Flags>None</imviz:Flags>
+            </Expression>
+            <Expression xsi:type="Disable">
+              <Builder xsi:type="SubscribeSubject">
+                <Name>box1_temp</Name>
+              </Builder>
+            </Expression>
+            <Expression xsi:type="Disable">
+              <Builder xsi:type="imviz:RollingBufferBuilder">
+                <imviz:Capacity>1000</imviz:Capacity>
+                <imviz:ValueSelector />
+              </Builder>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>box2_temp</Name>
+            </Expression>
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="2" Label="Source1" />
+            <Edge From="0" To="8" Label="Source2" />
+            <Edge From="1" To="2" Label="Source2" />
+            <Edge From="1" To="8" Label="Source3" />
+            <Edge From="3" To="5" Label="Source1" />
+            <Edge From="3" To="8" Label="Source4" />
+            <Edge From="4" To="5" Label="Source2" />
+            <Edge From="4" To="8" Label="Source5" />
+            <Edge From="6" To="7" Label="Source1" />
+            <Edge From="7" To="8" Label="Source1" />
+            <Edge From="9" To="10" Label="Source1" />
+            <Edge From="10" To="11" Label="Source1" />
+            <Edge From="11" To="12" Label="Source1" />
+            <Edge From="12" To="13" Label="Source1" />
+            <Edge From="14" To="15" Label="Source1" />
+            <Edge From="15" To="16" Label="Source1" />
+            <Edge From="16" To="17" Label="Source1" />
+            <Edge From="17" To="18" Label="Source1" />
+            <Edge From="19" To="20" Label="Source1" />
+            <Edge From="21" To="22" Label="Source1" />
+            <Edge From="23" To="24" Label="Source1" />
+            <Edge From="24" To="25" Label="Source1" />
+            <Edge From="26" To="27" Label="Source1" />
+            <Edge From="28" To="29" Label="Source1" />
+            <Edge From="30" To="31" Label="Source1" />
+            <Edge From="31" To="32" Label="Source1" />
+            <Edge From="32" To="33" Label="Source1" />
+            <Edge From="34" To="35" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="gui:GroupBoxBuilder">
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Text />
+      </Expression>
+      <Expression xsi:type="Disable">
+        <Builder xsi:type="rx:Condition">
+          <Name>WarningSound</Name>
+          <Workflow>
+            <Nodes>
+              <Expression xsi:type="WorkflowInput">
+                <Name>Source1</Name>
+              </Expression>
+              <Expression xsi:type="WorkflowOutput" />
+              <Expression xsi:type="SubscribeSubject">
+                <Name>Source</Name>
+              </Expression>
+              <Expression xsi:type="Combinator">
+                <Combinator xsi:type="rx:Delay">
+                  <rx:DueTime>PT2S</rx:DueTime>
+                </Combinator>
+              </Expression>
+              <Expression xsi:type="Combinator">
+                <Combinator xsi:type="p1:PlaySource" />
+              </Expression>
+              <Expression xsi:type="Combinator">
+                <Combinator xsi:type="rx:Delay">
+                  <rx:DueTime>PT2S</rx:DueTime>
+                </Combinator>
+              </Expression>
+              <Expression xsi:type="Combinator">
+                <Combinator xsi:type="p1:PauseSource" />
+              </Expression>
+            </Nodes>
+            <Edges>
+              <Edge From="0" To="1" Label="Source1" />
+              <Edge From="2" To="3" Label="Source1" />
+              <Edge From="3" To="4" Label="Source1" />
+              <Edge From="4" To="5" Label="Source1" />
+              <Edge From="5" To="6" Label="Source1" />
+            </Edges>
+          </Workflow>
+        </Builder>
+      </Expression>
+      <Expression xsi:type="Disable">
+        <Builder xsi:type="VisualizerMapping" />
+      </Expression>
+      <Expression xsi:type="Disable">
+        <Builder xsi:type="Combinator">
+          <Combinator xsi:type="rx:NewThreadScheduler" />
+        </Builder>
+      </Expression>
+      <Expression xsi:type="Disable">
+        <Builder xsi:type="Combinator">
+          <Combinator xsi:type="rx:ThreadPoolScheduler" />
+        </Builder>
+      </Expression>
+      <Expression xsi:type="Disable">
+        <Builder xsi:type="Combinator">
+          <Combinator xsi:type="rx:CurrentThreadScheduler" />
+        </Builder>
+      </Expression>
+      <Expression xsi:type="GroupWorkflow">
+        <Name>AlarmToneSetup</Name>
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="SampleRate" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="p1:CreateMixerContext">
+                <p1:HostApi />
+                <p1:DeviceName />
+                <p1:SampleRate>48000</p1:SampleRate>
+                <p1:ChannelCount xsi:nil="true" />
+                <p1:SuggestedLatency xsi:nil="true" />
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="p1:StartMixer" />
+            </Expression>
+            <Expression xsi:type="rx:BehaviorSubject">
+              <Name>Mixer</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Mixer</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="p1:CreateSource">
+                <p1:Looping>true</p1:Looping>
+                <p1:Playing>false</p1:Playing>
+                <p1:Gain>1</p1:Gain>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="rx:BehaviorSubject">
+              <Name>Source</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Mixer</Name>
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>SampleRate</Selector>
+            </Expression>
+            <Expression xsi:type="PropertyMapping">
+              <PropertyMappings>
+                <Property Name="SampleRate" />
+              </PropertyMappings>
+            </Expression>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="Frequency" />
+              <Property Name="Amplitude" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="dsp:FunctionGenerator">
+                <dsp:BufferLength>48000</dsp:BufferLength>
+                <dsp:Frequency>240</dsp:Frequency>
+                <dsp:Waveform>Sine</dsp:Waveform>
+                <dsp:SampleRate>48000</dsp:SampleRate>
+                <dsp:Depth>F32</dsp:Depth>
+                <dsp:Amplitude>0.5</dsp:Amplitude>
+                <dsp:Offset>0</dsp:Offset>
+                <dsp:Phase>0</dsp:Phase>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="rx:Take">
+                <rx:Count>1</rx:Count>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Source</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="p1:AppendBuffer" />
+            </Expression>
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="1" To="2" Label="Source1" />
+            <Edge From="2" To="3" Label="Source1" />
+            <Edge From="4" To="5" Label="Source1" />
+            <Edge From="5" To="6" Label="Source1" />
+            <Edge From="7" To="8" Label="Source1" />
+            <Edge From="8" To="9" Label="Source1" />
+            <Edge From="9" To="11" Label="Source1" />
+            <Edge From="10" To="11" Label="Source2" />
+            <Edge From="11" To="12" Label="Source1" />
+            <Edge From="12" To="14" Label="Source1" />
+            <Edge From="13" To="14" Label="Source2" />
+          </Edges>
+        </Workflow>
+      </Expression>
+    </Nodes>
+    <Edges />
+  </Workflow>
+</WorkflowBuilder>
